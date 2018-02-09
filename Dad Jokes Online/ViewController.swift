@@ -20,8 +20,22 @@ class ViewController: UIViewController {
     
     
     // Actions
+    @IBAction func didPressJoke() {
+        self.jokes = [Joke]()
+        let dispatchGroup = DispatchGroup()
+        self.fetch(dispatchGroup: dispatchGroup)
+        print("press joke button")
+        dispatchGroup.notify(queue: .main, execute: {
+            self.undateLabels()
+            self.view.reloadInputViews()
+        })
+    }
+    
+    
+    
     @IBAction func didPressPunchline() {
         print("did press the button")
+        punchlineLabel.text = jokes[0].punchline
     }
     
 
@@ -29,12 +43,26 @@ class ViewController: UIViewController {
         super.viewDidLoad()
         // Do any additional setup after loading the view, typically from a nib.
         self.title = "Dad Jokes Online"
-        self.fetch()
         
+        // This allows the dispatch queue to controll the threads
+        let dispatchGroup = DispatchGroup()
+        self.fetch(dispatchGroup: dispatchGroup)
         
+        dispatchGroup.notify(queue: .main, execute: {
+            self.undateLabels()
+            self.view.reloadInputViews()
+        })
+   
     }
     
-    func fetch() {
+    func undateLabels() {
+        self.setupLabel.text = jokes[0].setup
+        self.punchlineLabel.text = "..."
+    }
+    
+    func fetch(dispatchGroup: DispatchGroup) {
+        
+        dispatchGroup.enter()
         
         let jsonURLString = "https://08ad1pao69.execute-api.us-east-1.amazonaws.com/dev/random_joke"
         guard let url = URL(string: jsonURLString) else { return }
@@ -45,9 +73,7 @@ class ViewController: UIViewController {
                 let joke = try JSONDecoder().decode(Joke.self, from: data)
                 
                 self.jokes.append(joke)
-//                DispatchQueue.main.async {
-//
-//                }
+                dispatchGroup.leave()
                 
                 print("Type: \(joke.type)\nsetup: \(joke.setup)\npunchline: \(joke.punchline)")
             }
